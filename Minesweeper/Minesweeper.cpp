@@ -59,6 +59,8 @@ int isKillTimer = 0;
 
 int inGame = 1;
 
+int isWin = 0;
+
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
@@ -177,6 +179,12 @@ void drawMinesweeperStatistics(HDC hdc, int x, int y)
 
     TCHAR str2[] = _T("Времени прошло: ");
     TextOut(hdc, x, y + 50, str2, _tcsclen(str2));
+
+    if (isWin)
+    {
+        TCHAR str3[] = _T("Победа!");
+        TextOut(hdc, x, y + 80, str3, _tcsclen(str3));
+    }
 
     char text[5];
     TCHAR textOut[5];
@@ -430,6 +438,21 @@ void showAllMines()
     }
 }
 
+int checkWin()
+{
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+    {
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+        {
+            if (gameField[i][j] == GAME_CELL_MINE && viewField[i][j] != VIEW_CELL_FLAG)
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -504,9 +527,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (isKillTimer) KillTimer(hWnd, 1);
         timer++;
         InvalidateRect(hWnd, NULL, 1);
-
-        //RECT rect = { 540, 124, 600, 150 };
-        //InvalidateRect(hWnd, &rect, 1);
     }
     break;
     case WM_MOUSEMOVE:
@@ -599,8 +619,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (clickedCellI >= 0 && clickedCellI < GRID_ROWS_COUNT &&
                 clickedCellJ >= 0 && clickedCellJ < GRID_COLUMNS_COUNT)
-            {
-                markedCell(clickedCellI, clickedCellJ);
+            {   if (inGame)
+                    markedCell(clickedCellI, clickedCellJ);
+                if (checkWin())
+                {
+                    inGame = 0;
+                    isWin = 1;
+                    isKillTimer = 1;
+                }
                 InvalidateRect(hWnd, NULL, 1);
             }
         }
