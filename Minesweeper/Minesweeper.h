@@ -3,7 +3,7 @@
 #include "resource.h"
 
 
-void drawMinesweeperFrame(HDC hdc, int x, int y);
+void drawMinesweeperFrame(HWND hWnd, HDC hdc, int x, int y);
 void drawMinesweeperGrid(HDC hdc, int x, int y);
 void drawMinesweeperStatistics(HDC hdc, int x, int y);
 void drawMinesweeperCell(HDC hdc, int x, int y, int i, int j);

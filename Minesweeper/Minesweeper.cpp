@@ -13,6 +13,8 @@
 
 #define MINES_COUNT 24
 
+#define PROGRAM_SECOND 1000
+
 #define GAME_GRID_X 50
 #define GAME_GRID_Y 50
 
@@ -50,6 +52,8 @@ int isActual = 0;
 int isFirstClick = 1;
 
 int flagsCount = MINES_COUNT;
+
+unsigned int timer = 0;
 
 
 // Global Variables:
@@ -108,11 +112,9 @@ void drawLine(HDC hdc, int x1, int y1, int x2, int y2)
     LineTo(hdc, x2, y2);
 }
 
-void drawMinesweeperFrame(HDC hdc, int x, int y)
+void drawMinesweeperFrame(HWND hWnd, HDC hdc, int x, int y)
 { 
     drawMinesweeperGrid(hdc, x, y);
-
-    drawMinesweeperStatistics(hdc, x + GRID_COLUMNS_COUNT * MIN_CELL_SIZE + 20, y);
 }
 
 
@@ -121,11 +123,37 @@ void drawMinesweeperStatistics(HDC hdc, int x, int y)
     TCHAR str1[] = _T("Мин осталось: ");
     TextOut(hdc, x, y, str1, _tcsclen(str1));
 
+    TCHAR str2[] = _T("Времени прошло: ");
+    TextOut(hdc, x, y + 50, str2, _tcsclen(str2));
+
     char text[5];
     TCHAR textOut[5];
+
     sprintf_s(text, "%d", flagsCount);
     OemToChar(text, textOut);
     TextOut(hdc, x + 150, y, textOut, _tcsclen(textOut));
+
+    char timerText[10];
+    TCHAR timerTextOut[10];
+
+    int temp = timer;
+
+    int seconds = temp % 60;
+    temp /= 60;
+    int minutes = temp % 60;
+    temp /= 60;
+    int hours = temp;
+    if (hours > 0)
+    {
+        sprintf_s(timerText, "%d:%d:%d", hours, minutes, seconds);
+    }
+    else
+    {
+        sprintf_s(timerText, "%d:%d", minutes, seconds);
+    }
+        
+    OemToChar(timerText, timerTextOut);
+    TextOut(hdc, x + 170, y + 50, timerTextOut, _tcsclen(timerTextOut));
 }
 
 void drawMinesweeperGrid(HDC hdc, int x, int y)
@@ -150,7 +178,9 @@ void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
     if (cellState == VIEW_CELL_MINE_HIT) drawMineHit(hdc, x, y, i, j);
     if (cellState == VIEW_CELL_FLAG) drawFlag(hdc, x, y, i, j);
 
-    if (lightI == i && lightJ == j && viewField[i][j] == VIEW_CELL_UNEXPLORED) lightCell(hdc, i, j);
+    if (lightI == i && lightJ == j &&
+    (viewField[i][j] == VIEW_CELL_UNEXPLORED ||
+        viewField[i][j] == VIEW_CELL_FLAG)) lightCell(hdc, i, j);
 }
 
 
@@ -309,7 +339,7 @@ void openCell(int i, int j)
 
 void markedCell(int i, int j)
 {
-    if (viewField[i][j] == VIEW_CELL_UNEXPLORED)
+    if (viewField[i][j] == VIEW_CELL_UNEXPLORED && flagsCount > 0)
     {
         viewField[i][j] = VIEW_CELL_FLAG;
         flagsCount--;
@@ -391,6 +421,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_TIMER:
+    {
+        timer++;
+        InvalidateRect(hWnd, NULL, 1);
+
+        //RECT rect = { 540, 124, 600, 150 };
+        //InvalidateRect(hWnd, &rect, 1);
+    }
+    break;
     case WM_MOUSEMOVE:
     {
         int xPos, yPos;
@@ -457,6 +496,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     isFirstClick = !isFirstClick;
                     fillMines(clickedCellI, clickedCellJ);
+
+                    SetTimer(hWnd, 1, PROGRAM_SECOND, 0);
                 }
                 openCell(clickedCellI, clickedCellJ);
                 InvalidateRect(hWnd, NULL, 1);
@@ -528,7 +569,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetTextColor(hdc, RGB(0, 0, 128));
 
 
-            drawMinesweeperFrame(hdc, GAME_GRID_X, GAME_GRID_Y);
+            drawMinesweeperFrame(hWnd, hdc, GAME_GRID_X, GAME_GRID_Y);
+            drawMinesweeperStatistics(hdc, GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE + 20, GAME_GRID_Y);
+
             
 
             EndPaint(hWnd, &ps);
