@@ -9,7 +9,7 @@
 
 #define MAX_LOADSTRING 100
 
-#define RANDOM_MINES 0
+#define RANDOM_MINES 1
 
 #define MINES_COUNT 24
 
