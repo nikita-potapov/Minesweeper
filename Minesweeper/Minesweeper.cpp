@@ -9,7 +9,7 @@
 
 #define MAX_LOADSTRING 100
 
-#define RANDOM_MINES 1
+#define RANDOM_MINES 0
 
 #define MINES_COUNT 24
 
@@ -48,6 +48,8 @@ int mouseX, mouseY;
 int isActual = 0;
 
 int isFirstClick = 1;
+
+int flagsCount = MINES_COUNT;
 
 
 // Global Variables:
@@ -109,12 +111,21 @@ void drawLine(HDC hdc, int x1, int y1, int x2, int y2)
 void drawMinesweeperFrame(HDC hdc, int x, int y)
 { 
     drawMinesweeperGrid(hdc, x, y);
+
+    drawMinesweeperStatistics(hdc, x + GRID_COLUMNS_COUNT * MIN_CELL_SIZE + 20, y);
+}
+
+
+void drawMinesweeperStatistics(HDC hdc, int x, int y)
+{
+    TCHAR str1[] = _T("Мин осталось: ");
+    TextOut(hdc, x, y, str1, _tcsclen(str1));
+
     char text[5];
     TCHAR textOut[5];
-    sprintf_s(text, "%d", mouseX);
+    sprintf_s(text, "%d", flagsCount);
     OemToChar(text, textOut);
-    TextOut(hdc, 400, 100, textOut, _tcsclen(textOut)); 
-
+    TextOut(hdc, x + 150, y, textOut, _tcsclen(textOut));
 }
 
 void drawMinesweeperGrid(HDC hdc, int x, int y)
@@ -139,7 +150,7 @@ void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
     if (cellState == VIEW_CELL_MINE_HIT) drawMineHit(hdc, x, y, i, j);
     if (cellState == VIEW_CELL_FLAG) drawFlag(hdc, x, y, i, j);
 
-    if (lightI == i && lightJ == j) lightCell(hdc, i, j);
+    if (lightI == i && lightJ == j && viewField[i][j] == VIEW_CELL_UNEXPLORED) lightCell(hdc, i, j);
 }
 
 
@@ -298,7 +309,17 @@ void openCell(int i, int j)
 
 void markedCell(int i, int j)
 {
-    
+    if (viewField[i][j] == VIEW_CELL_UNEXPLORED)
+    {
+        viewField[i][j] = VIEW_CELL_FLAG;
+        flagsCount--;
+    }
+    else if (viewField[i][j] == VIEW_CELL_FLAG)
+    {
+        viewField[i][j] = VIEW_CELL_UNEXPLORED;
+        flagsCount++;
+    }
+
 }
 
 
