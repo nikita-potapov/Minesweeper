@@ -132,11 +132,6 @@ void drawMinesweeperGrid(HDC hdc, int x, int y)
 
 void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
 {
-    viewField[3][4] = VIEW_CELL_OPENED;
-    viewField[7][4] = VIEW_CELL_MINE;
-    viewField[9][4] = VIEW_CELL_MINE_HIT;
-    viewField[11][4] = VIEW_CELL_FLAG;
-
     int cellState = viewField[i][j];
     if (cellState == VIEW_CELL_UNEXPLORED) drawUnexplored(hdc, x, y, i, j);
     if (cellState == VIEW_CELL_OPENED) drawOpened(hdc, x, y, i, j);
@@ -287,6 +282,25 @@ void fillMines(int i, int j)
     }
 }
 
+void openCell(int i, int j)
+{
+    if (viewField[i][j] == VIEW_CELL_FLAG) return;
+    if (viewField[i][j] != VIEW_CELL_UNEXPLORED) return;
+    if (gameField[i][j] == GAME_CELL_FREE)
+    {
+        viewField[i][j] = VIEW_CELL_OPENED;
+    }
+    else
+    {
+        viewField[i][j] = VIEW_CELL_MINE_HIT;
+    }
+}
+
+void markedCell(int i, int j)
+{
+    
+}
+
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -398,7 +412,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 isActual = !isActual;
             }
-            
         }
 
     }
@@ -424,6 +437,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     isFirstClick = !isFirstClick;
                     fillMines(clickedCellI, clickedCellJ);
                 }
+                openCell(clickedCellI, clickedCellJ);
+                InvalidateRect(hWnd, NULL, 1);
             }
         }
     }
@@ -444,8 +459,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (clickedCellI >= 0 && clickedCellI < GRID_ROWS_COUNT &&
                 clickedCellJ >= 0 && clickedCellJ < GRID_COLUMNS_COUNT)
             {
-                viewField[clickedCellI][clickedCellJ]++;
-                viewField[clickedCellI][clickedCellJ] = viewField[clickedCellI][clickedCellJ] % 5;
+                markedCell(clickedCellI, clickedCellJ);
                 InvalidateRect(hWnd, NULL, 1);
             }
         }
