@@ -222,12 +222,14 @@ void drawOpened(HDC hdc, int x, int y, int i, int j)
         x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);
     DeleteObject(hBrush);
 
-    
+    int minesAroundCount = getMinesAroundCount(i, j);
 
     char minesAroundText[2];
-    sprintf_s(minesAroundText, "%d", flagsCount);
-    TCHAR minesAround[] = _T();
-    TextOut(hdc, x, y, minesAround, _tcsclen(minesAround));
+
+    sprintf_s(minesAroundText, "%d", minesAroundCount);
+    TCHAR minesAround[2];
+    OemToChar(minesAroundText, minesAround);
+    TextOut(hdc, x + j * MIN_CELL_SIZE + 5, y + i * MIN_CELL_SIZE, minesAround, _tcsclen(minesAround));
 
 }
 void drawMine(HDC hdc, int x, int y, int i, int j)
@@ -591,6 +593,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             );
             SelectObject(hdc, hFont);
             SetTextColor(hdc, RGB(0, 0, 128));
+            SetBkMode(hdc, TRANSPARENT);
 
 
             drawMinesweeperFrame(hWnd, hdc, GAME_GRID_X, GAME_GRID_Y);
