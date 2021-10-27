@@ -21,3 +21,4 @@ void markedCell(int i, int j);
 int getMinesAroundCount(int i, int j);
 void recursiveOpenCell(int i, int j);
 int isCordsGood(int i, int j);
+void showAllMines();

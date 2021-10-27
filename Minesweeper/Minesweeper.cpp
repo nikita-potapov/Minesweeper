@@ -55,6 +55,7 @@ int flagsCount = MINES_COUNT;
 
 unsigned int timer = 0;
 
+int isKillTimer = 0;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
@@ -392,6 +393,8 @@ void openCell(int i, int j)
     else
     {
         viewField[i][j] = VIEW_CELL_MINE_HIT;
+        isKillTimer = 1;
+        showAllMines();
     }
 }
 
@@ -408,6 +411,18 @@ void markedCell(int i, int j)
         flagsCount++;
     }
 
+}
+
+void showAllMines()
+{
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+    {   
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+        {
+            if (gameField[i][j] == GAME_CELL_MINE && viewField[i][j] != VIEW_CELL_MINE_HIT)
+                viewField[i][j] = VIEW_CELL_MINE;
+        }
+    }
 }
 
 
@@ -481,6 +496,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_TIMER:
     {
+        if (isKillTimer) KillTimer(hWnd, 1);
         timer++;
         InvalidateRect(hWnd, NULL, 1);
 
