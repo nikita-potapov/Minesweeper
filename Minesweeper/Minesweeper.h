@@ -18,3 +18,4 @@ void lightCell(HDC hdc, int i, int j);
 void fillMines(int i, int j);
 void openCell(int i, int j);
 void markedCell(int i, int j);
+int getMinesAroundCount(int i, int j);

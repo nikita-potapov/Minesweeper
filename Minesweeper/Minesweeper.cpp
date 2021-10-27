@@ -112,6 +112,25 @@ void drawLine(HDC hdc, int x1, int y1, int x2, int y2)
     LineTo(hdc, x2, y2);
 }
 
+int getMinesAroundCount(int i, int j)
+{
+    int variants[] = {-1, 0, 1};
+    int mines = 0;
+    for (int m = 0; m < 3; m++)
+    {
+        for (int n = 0; n < 3; n++)
+        {
+            if ((i != 0 && j != 0) &&
+                i + variants[m] >= 0 && i + variants[m] < GRID_ROWS_COUNT &&
+                j + variants[n] >= 0 && j + variants[n] < GRID_COLUMNS_COUNT)
+            {
+                mines += gameField[i + variants[m]][j + variants[n]];
+            }
+        }
+    }
+    return mines;
+}
+
 void drawMinesweeperFrame(HWND hWnd, HDC hdc, int x, int y)
 { 
     drawMinesweeperGrid(hdc, x, y);
@@ -203,7 +222,12 @@ void drawOpened(HDC hdc, int x, int y, int i, int j)
         x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);
     DeleteObject(hBrush);
 
+    
 
+    char minesAroundText[2];
+    sprintf_s(minesAroundText, "%d", flagsCount);
+    TCHAR minesAround[] = _T();
+    TextOut(hdc, x, y, minesAround, _tcsclen(minesAround));
 
 }
 void drawMine(HDC hdc, int x, int y, int i, int j)
