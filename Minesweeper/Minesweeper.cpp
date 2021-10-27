@@ -1,6 +1,7 @@
 // Minesweeper.cpp : Defines the entry point for the application.
 //
 #include <stdlib.h>
+#include <stdio.h>
 #include "framework.h"
 #include "Minesweeper.h"
 
@@ -33,7 +34,13 @@
 int gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 int viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 
-int lightI, lightJ;
+int lightI = -1;
+int lightJ = -1;
+
+int mouseX, mouseY;
+
+int isActual = 0;
+
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
@@ -92,8 +99,14 @@ void drawLine(HDC hdc, int x1, int y1, int x2, int y2)
 }
 
 void drawMinesweeperFrame(HDC hdc, int x, int y)
-{
+{ 
     drawMinesweeperGrid(hdc, x, y);
+    char text[5];
+    TCHAR textOut[5];
+    sprintf_s(text, "%d", mouseX);
+    OemToChar(text, textOut);
+    TextOut(hdc, 400, 100, textOut, _tcsclen(textOut)); 
+
 }
 
 void drawMinesweeperGrid(HDC hdc, int x, int y)
@@ -234,7 +247,18 @@ void drawFlag(HDC hdc, int x, int y, int i, int j)
 void lightCell(HDC hdc, int i, int j)
 {
     HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+    SelectObject(hdc, hPen);
+
+    SelectObject(hdc, GetStockObject(NULL_BRUSH));
+
+    Rectangle(hdc, GAME_GRID_X + j * MIN_CELL_SIZE,
+                GAME_GRID_Y + i * MIN_CELL_SIZE,
+                GAME_GRID_X + (j + 1) * MIN_CELL_SIZE,
+                GAME_GRID_Y + (i + 1) * MIN_CELL_SIZE);
     
+
+    DeleteObject(hPen);
+
 }
 
 
@@ -312,10 +336,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         xPos = LOWORD(lParam);
         yPos = HIWORD(lParam);
 
-        if (xPos > GAME_GRID_X && xPos < GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE)
+        mouseX = xPos;
+        mouseY = yPos;
+
+        if (xPos > GAME_GRID_X && xPos < GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE &&
+            yPos > GAME_GRID_Y && yPos < GAME_GRID_Y + GRID_ROWS_COUNT * MIN_CELL_SIZE)
         {
-            lightJ = (xPos - GAME_GRID_X) / MIN_CELL_SIZE;
-            lightI = (yPos - GAME_GRID_Y) / MIN_CELL_SIZE;
+            
+    
+            int newLightI, newLightJ;
+            newLightJ = (xPos - GAME_GRID_X) / MIN_CELL_SIZE;
+            newLightI = (yPos - GAME_GRID_Y) / MIN_CELL_SIZE;
+
+            if (newLightI < 0 || newLightI > GRID_ROWS_COUNT - 1) newLightI = -1;
+            if (newLightJ < 0 || newLightJ > GRID_COLUMNS_COUNT - 1) newLightJ = -1;
+
+            if (newLightI != lightI || newLightJ != lightJ)
+            {
+                lightI = newLightI;
+                lightJ = newLightJ;
+                InvalidateRect(hWnd, NULL, 1);
+
+                isActual = 0;
+            }
+
+            
+        }
+        else
+        {
+            if (!isActual)
+            {
+                lightI = -1;
+                lightJ = -1;
+                InvalidateRect(hWnd, NULL, 1);
+
+                isActual = !isActual;
+            }
+            
         }
 
     }
@@ -347,6 +404,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: Add any drawing code that uses hdc here...
+            HFONT hFont = CreateFont(20,
+                0, 0, 0, 0, 0, 0, 0,
+                DEFAULT_CHARSET,
+                0, 0, 0, 0,
+                L"Courier New"
+            );
+            SelectObject(hdc, hFont);
+            SetTextColor(hdc, RGB(0, 0, 128));
+
 
             drawMinesweeperFrame(hdc, GAME_GRID_X, GAME_GRID_Y);
             
@@ -355,7 +421,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+    {
         PostQuitMessage(0);
+    }
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
