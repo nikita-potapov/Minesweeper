@@ -120,7 +120,7 @@ int getMinesAroundCount(int i, int j)
     {
         for (int n = 0; n < 3; n++)
         {
-            if ((i != 0 && j != 0) &&
+            if (!(m == 1 && n == 1) &&
                 i + variants[m] >= 0 && i + variants[m] < GRID_ROWS_COUNT &&
                 j + variants[n] >= 0 && j + variants[n] < GRID_COLUMNS_COUNT)
             {
@@ -136,6 +136,36 @@ void drawMinesweeperFrame(HWND hWnd, HDC hdc, int x, int y)
     drawMinesweeperGrid(hdc, x, y);
 }
 
+void recursiveOpenCell(int i, int j)
+{
+    if (viewField[i][j] == VIEW_CELL_OPENED) return;
+    if (gameField[i][j] == GAME_CELL_MINE) return;
+
+    viewField[i][j] = VIEW_CELL_OPENED;
+    if (getMinesAroundCount(i, j) == 0)
+    {
+        int dx, dy;
+        int v[3] = { -1, 0, 1 };
+        for (int m = 0; m < 3; m++)
+        {
+            for (int n = 0; n < 3; n++)
+            {
+                dx = v[m];
+                dy = v[n];
+
+                if ((dx != 0) && (dy != 0)) continue;
+                if (isCordsGood(i + dy, j + dx))
+                    recursiveOpenCell(i + dy, j + dx);
+            }
+        }
+    }   
+}
+
+
+int isCordsGood(int i, int j)
+{
+    return (((i >= 0) && (i < GRID_ROWS_COUNT)) && ((j >= 0) && (j < GRID_COLUMNS_COUNT)));
+}
 
 void drawMinesweeperStatistics(HDC hdc, int x, int y)
 {
@@ -224,12 +254,15 @@ void drawOpened(HDC hdc, int x, int y, int i, int j)
 
     int minesAroundCount = getMinesAroundCount(i, j);
 
+    if (minesAroundCount == 0) return;
+
     char minesAroundText[2];
 
     sprintf_s(minesAroundText, "%d", minesAroundCount);
     TCHAR minesAround[2];
     OemToChar(minesAroundText, minesAround);
-    TextOut(hdc, x + j * MIN_CELL_SIZE + 5, y + i * MIN_CELL_SIZE, minesAround, _tcsclen(minesAround));
+    TextOut(hdc, x + j * MIN_CELL_SIZE + 5, y + i * MIN_CELL_SIZE,
+        minesAround, _tcsclen(minesAround));
 
 }
 void drawMine(HDC hdc, int x, int y, int i, int j)
@@ -353,10 +386,9 @@ void openCell(int i, int j)
 {
     if (viewField[i][j] == VIEW_CELL_FLAG) return;
     if (viewField[i][j] != VIEW_CELL_UNEXPLORED) return;
+
     if (gameField[i][j] == GAME_CELL_FREE)
-    {
-        viewField[i][j] = VIEW_CELL_OPENED;
-    }
+        recursiveOpenCell(i, j);
     else
     {
         viewField[i][j] = VIEW_CELL_MINE_HIT;
