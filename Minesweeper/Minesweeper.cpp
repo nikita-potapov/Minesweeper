@@ -2,16 +2,22 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "framework.h"
 #include "Minesweeper.h"
 
+
 #define MAX_LOADSTRING 100
+
+#define RANDOM_MINES 1
+
+#define MINES_COUNT 24
 
 #define GAME_GRID_X 50
 #define GAME_GRID_Y 50
 
-#define GAME_CELL_MINE 0
-#define GAME_CELL_FREE 1
+#define GAME_CELL_FREE 0
+#define GAME_CELL_MINE 1
 
 #define VIEW_CELL_UNEXPLORED 0
 #define VIEW_CELL_OPENED 1
@@ -40,6 +46,8 @@ int lightJ = -1;
 int mouseX, mouseY;
 
 int isActual = 0;
+
+int isFirstClick = 1;
 
 
 // Global Variables:
@@ -158,6 +166,9 @@ void drawOpened(HDC hdc, int x, int y, int i, int j)
     Rectangle(hdc, x + j * MIN_CELL_SIZE, y + i * MIN_CELL_SIZE,
         x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);
     DeleteObject(hBrush);
+
+
+
 }
 void drawMine(HDC hdc, int x, int y, int i, int j)
 {
@@ -243,7 +254,6 @@ void drawFlag(HDC hdc, int x, int y, int i, int j)
     DeleteObject(hBrush);
 }
 
-
 void lightCell(HDC hdc, int i, int j)
 {
     HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
@@ -259,6 +269,22 @@ void lightCell(HDC hdc, int i, int j)
 
     DeleteObject(hPen);
 
+}
+
+void fillMines(int i, int j)
+{
+    int mines = MINES_COUNT;
+    while (mines > 0)
+    {
+        int ri = rand() % GRID_ROWS_COUNT;
+        int rj = rand() % GRID_COLUMNS_COUNT;
+
+        if (ri == i && rj == j) continue;
+        if (gameField[ri][rj] == GAME_CELL_MINE) continue;
+
+        gameField[ri][rj] = GAME_CELL_MINE;
+        mines--;
+    }
 }
 
 
@@ -377,9 +403,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     }
     break;
+    case WM_LBUTTONDOWN:
+    {
+        int xPos, yPos;
+        xPos = LOWORD(lParam);
+        yPos = HIWORD(lParam);
+
+        if (xPos > GAME_GRID_X && xPos < GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE &&
+            yPos > GAME_GRID_Y && yPos < GAME_GRID_Y + GRID_ROWS_COUNT * MIN_CELL_SIZE)
+        {
+            int clickedCellI, clickedCellJ;
+            clickedCellJ = (xPos - GAME_GRID_X) / MIN_CELL_SIZE;
+            clickedCellI = (yPos - GAME_GRID_Y) / MIN_CELL_SIZE;
+
+            if (clickedCellI >= 0 && clickedCellI < GRID_ROWS_COUNT &&
+                clickedCellJ >= 0 && clickedCellJ < GRID_COLUMNS_COUNT)
+            {
+                if (isFirstClick)
+                {
+                    isFirstClick = !isFirstClick;
+                    fillMines(clickedCellI, clickedCellJ);
+                }
+            }
+        }
+    }
+    break;
+    case WM_RBUTTONDOWN:
+    {
+        int xPos, yPos;
+        xPos = LOWORD(lParam);
+        yPos = HIWORD(lParam);
+
+        if (xPos > GAME_GRID_X && xPos < GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE &&
+            yPos > GAME_GRID_Y && yPos < GAME_GRID_Y + GRID_ROWS_COUNT * MIN_CELL_SIZE)
+        {
+            int clickedCellI, clickedCellJ;
+            clickedCellJ = (xPos - GAME_GRID_X) / MIN_CELL_SIZE;
+            clickedCellI = (yPos - GAME_GRID_Y) / MIN_CELL_SIZE;
+
+            if (clickedCellI >= 0 && clickedCellI < GRID_ROWS_COUNT &&
+                clickedCellJ >= 0 && clickedCellJ < GRID_COLUMNS_COUNT)
+            {
+                viewField[clickedCellI][clickedCellJ]++;
+                viewField[clickedCellI][clickedCellJ] = viewField[clickedCellI][clickedCellJ] % 5;
+                InvalidateRect(hWnd, NULL, 1);
+            }
+        }
+    }
+    break;
     case WM_CREATE:
     {
-        
+        if (RANDOM_MINES)
+            srand(time(NULL));
+        else
+            srand(1000);
     }
         break;
     case WM_COMMAND:
@@ -404,6 +481,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: Add any drawing code that uses hdc here...
+
+            // Настройки шрифта
             HFONT hFont = CreateFont(20,
                 0, 0, 0, 0, 0, 0, 0,
                 DEFAULT_CHARSET,
