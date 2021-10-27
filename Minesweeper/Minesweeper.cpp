@@ -57,6 +57,8 @@ unsigned int timer = 0;
 
 int isKillTimer = 0;
 
+int inGame = 1;
+
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
@@ -385,6 +387,8 @@ void fillMines(int i, int j)
 
 void openCell(int i, int j)
 {
+    if (!inGame) return;
+
     if (viewField[i][j] == VIEW_CELL_FLAG) return;
     if (viewField[i][j] != VIEW_CELL_UNEXPLORED) return;
 
@@ -395,6 +399,7 @@ void openCell(int i, int j)
         viewField[i][j] = VIEW_CELL_MINE_HIT;
         isKillTimer = 1;
         showAllMines();
+        inGame = 0;
     }
 }
 
