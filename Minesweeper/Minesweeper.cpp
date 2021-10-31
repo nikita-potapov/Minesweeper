@@ -39,6 +39,8 @@
 
 #define MIN_CELL_SIZE 20
 
+#define KEY_SPACE 0x20
+
 int gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 int viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 
@@ -232,6 +234,7 @@ void drawMinesweeperGrid(HDC hdc, int x, int y)
 void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
 {
     int cellState = viewField[i][j];
+
     if (cellState == VIEW_CELL_UNEXPLORED) drawUnexplored(hdc, x, y, i, j);
     if (cellState == VIEW_CELL_OPENED) drawOpened(hdc, x, y, i, j);
     if (cellState == VIEW_CELL_MINE) drawMine(hdc, x, y, i, j);
@@ -439,7 +442,9 @@ void showAllMines()
 }
 
 int checkWin()
-{
+{   
+    if (isFirstClick)
+        return 0;
     for (int i = 0; i < GRID_ROWS_COUNT; i++)
     {
         for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
@@ -453,6 +458,44 @@ int checkWin()
     return 1;
 }
 
+void restartGame()
+{
+    gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = { 0 };
+    viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = { 0 };
+
+    lightI = -1;
+    lightJ = -1;
+
+    mouseX, mouseY;
+
+    isActual = 0;
+
+    isFirstClick = 1;
+
+    flagsCount = MINES_COUNT;
+
+    timer = 0;
+
+    isKillTimer = 0;
+
+    inGame = 1;
+
+    isWin = 0;
+
+    clearField();
+}
+
+void clearField()
+{
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+    {
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+        {
+            gameField[i][j] = GAME_CELL_FREE;
+            viewField[i][j] = VIEW_CELL_UNEXPLORED;
+        }
+    }
+}
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -632,6 +675,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
     }
     break;
+    case WM_KEYDOWN:
+        switch (wParam)
+        {
+        case KEY_SPACE:
+            if (!inGame)
+            {
+                restartGame();
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+            break;
+        }
+    break;
     case WM_CREATE:
     {
         if (RANDOM_MINES)
@@ -679,7 +734,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             drawMinesweeperStatistics(hdc, GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE + 20, GAME_GRID_Y);
 
             
-
+            ReleaseDC(hWnd, hdc);
             EndPaint(hWnd, &ps);
         }
         break;
