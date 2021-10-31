@@ -63,6 +63,18 @@ int inGame = 1;
 
 int isWin = 0;
 
+
+
+static HPEN hPenBlack1 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+static HBRUSH hBrushColorUnexplored = CreateSolidBrush(COLOR_UNEXPLORED);
+static HBRUSH hBrushColorOpened = CreateSolidBrush(COLOR_OPENED);
+static HBRUSH hBrushColorMineBackground = CreateSolidBrush(RGB(96, 96, 96));
+static HBRUSH hBrushColorMineHit = CreateSolidBrush(COLOR_MINE_HIT);
+static HBRUSH hBrushColorWhite = CreateSolidBrush(RGB(255, 255, 255));
+static HBRUSH hBrushColorRed = CreateSolidBrush(RGB(255, 0, 0));
+static HPEN hPenBlack2 = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+
+
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
@@ -146,6 +158,7 @@ void drawMinesweeperFrame(HWND hWnd, HDC hdc, int x, int y)
 void recursiveOpenCell(int i, int j)
 {
     if (viewField[i][j] == VIEW_CELL_OPENED) return;
+    if (viewField[i][j] == VIEW_CELL_FLAG) return;
     if (gameField[i][j] == GAME_CELL_MINE) return;
 
     viewField[i][j] = VIEW_CELL_OPENED;
@@ -248,23 +261,22 @@ void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
 
 
 void drawUnexplored(HDC hdc, int x, int y, int i, int j)
-{   HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
-    HBRUSH hBrush = CreateSolidBrush(COLOR_UNEXPLORED);
-    SelectObject(hdc, hBrush);
+{   
+    SelectObject(hdc, hPenBlack1);
+    
+    SelectObject(hdc, hBrushColorUnexplored);
     Rectangle(hdc, x + j * MIN_CELL_SIZE, y + i * MIN_CELL_SIZE,
-        x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);
-    DeleteObject(hBrush);
-    DeleteObject(hPen);
+        x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);    
 }
+
 void drawOpened(HDC hdc, int x, int y, int i, int j)
 {
     SelectObject(hdc, GetStockObject(NULL_PEN));
-    HBRUSH hBrush = CreateSolidBrush(COLOR_OPENED);
-    SelectObject(hdc, hBrush);
+    
+    SelectObject(hdc, hBrushColorOpened);
     Rectangle(hdc, x + j * MIN_CELL_SIZE, y + i * MIN_CELL_SIZE,
         x + (j + 1) * MIN_CELL_SIZE - 1, y + (i + 1) * MIN_CELL_SIZE - 1);
-    DeleteObject(hBrush);
+    
 
     int minesAroundCount = getMinesAroundCount(i, j);
 
@@ -279,6 +291,7 @@ void drawOpened(HDC hdc, int x, int y, int i, int j)
         minesAround, _tcsclen(minesAround));
 
 }
+
 void drawMine(HDC hdc, int x, int y, int i, int j)
 {
     drawOpened(hdc, x, y, i, j);
@@ -287,11 +300,10 @@ void drawMine(HDC hdc, int x, int y, int i, int j)
     sx = j * MIN_CELL_SIZE + x;
     sy = i * MIN_CELL_SIZE + y;
 
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
+    SelectObject(hdc, hPenBlack1);
 
-    HBRUSH hBrush = CreateSolidBrush(RGB(96, 96, 96));
-    SelectObject(hdc, hBrush);
+    
+    SelectObject(hdc, hBrushColorMineBackground);
 
     drawLine(hdc, sx + 1, sy + 1, sx + 18, sy + 18);
     drawLine(hdc, sx + 1, sy + 18, sx + 18, sy + 1);
@@ -299,28 +311,25 @@ void drawMine(HDC hdc, int x, int y, int i, int j)
     drawLine(hdc, sx + 1, sy + 10, sx + 18, sy + 9);
 
     Ellipse(hdc, sx + 4, sy + 4, sx + 15, sy + 15);
-
-    DeleteObject(hPen);
-    DeleteObject(hBrush);
 }
+
 void drawMineHit(HDC hdc, int x, int y, int i, int j)
 {
     SelectObject(hdc, GetStockObject(NULL_PEN));
-    HBRUSH hBrush = CreateSolidBrush(COLOR_MINE_HIT);
-    SelectObject(hdc, hBrush);
+    
+    SelectObject(hdc, hBrushColorMineHit);
+
     Rectangle(hdc, x + j * MIN_CELL_SIZE, y + i * MIN_CELL_SIZE,
         x + (j + 1) * MIN_CELL_SIZE, y + (i + 1) * MIN_CELL_SIZE);
-    DeleteObject(hBrush);
+    
     
     int sx, sy;
     sx = j * MIN_CELL_SIZE + x;
     sy = i * MIN_CELL_SIZE + y;
 
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
+    SelectObject(hdc, hPenBlack1);
 
-    hBrush = CreateSolidBrush(RGB(96, 96, 96));
-    SelectObject(hdc, hBrush);
+    SelectObject(hdc, hBrushColorMineBackground);
 
     drawLine(hdc, sx + 1, sy + 1, sx + 18, sy + 18);
     drawLine(hdc, sx + 1, sy + 18, sx + 18, sy + 1);
@@ -328,10 +337,8 @@ void drawMineHit(HDC hdc, int x, int y, int i, int j)
     drawLine(hdc, sx + 1, sy + 10, sx + 18, sy + 9);
 
     Ellipse(hdc, sx + 4, sy + 4, sx + 15, sy + 15);
-
-    DeleteObject(hPen);
-    DeleteObject(hBrush);
 }
+
 void drawFlag(HDC hdc, int x, int y, int i, int j)
 {
     int sx, sy;
@@ -340,8 +347,8 @@ void drawFlag(HDC hdc, int x, int y, int i, int j)
 
     drawUnexplored(hdc, x, y, i, j);
     SelectObject(hdc, GetStockObject(NULL_PEN));
-    HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
-    SelectObject(hdc, hBrush);
+    
+    SelectObject(hdc, hBrushColorWhite);
 
     Rectangle(hdc, sx + 2, sy + 1, sx + 5, sy + 18);
     Rectangle(hdc, sx + 2, sy + 2, sx + 8, sy + 10);
@@ -349,8 +356,8 @@ void drawFlag(HDC hdc, int x, int y, int i, int j)
     Rectangle(hdc, sx + 2, sy + 4, sx + 15, sy + 8);
     Rectangle(hdc, sx + 2, sy + 5, sx + 16, sy + 7);
 
-    hBrush = CreateSolidBrush(RGB(255, 0, 0));
-    SelectObject(hdc, hBrush);
+    
+    SelectObject(hdc, hBrushColorRed);
 
     drawLine(hdc, sx + 3, sy + 2, sx + 3, sy + 17);
     drawLine(hdc, sx + 4, sy + 2, sx + 4, sy + 17);
@@ -360,13 +367,12 @@ void drawFlag(HDC hdc, int x, int y, int i, int j)
     Rectangle(hdc, sx + 3, sy + 5, sx + 14, sy + 7);
     Rectangle(hdc, sx + 3, sy + 6, sx + 15, sy + 6);
 
-    DeleteObject(hBrush);
+    
 }
 
 void lightCell(HDC hdc, int i, int j)
 {
-    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
+    SelectObject(hdc, hPenBlack2);
 
     SelectObject(hdc, GetStockObject(NULL_BRUSH));
 
@@ -374,11 +380,7 @@ void lightCell(HDC hdc, int i, int j)
                 GAME_GRID_Y + i * MIN_CELL_SIZE,
                 GAME_GRID_X + (j + 1) * MIN_CELL_SIZE,
                 GAME_GRID_Y + (i + 1) * MIN_CELL_SIZE);
-    
-
-    DeleteObject(hPen);
-
-}
+ }
 
 void fillMines(int i, int j)
 {
@@ -740,6 +742,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
     {
+        DeleteObject(hPenBlack1);
+        DeleteObject(hBrushColorUnexplored);
+        DeleteObject(hBrushColorOpened);
+        DeleteObject(hBrushColorMineBackground);
+        DeleteObject(hBrushColorMineHit);
+        DeleteObject(hBrushColorWhite);
+        DeleteObject(hBrushColorRed);
+        DeleteObject(hPenBlack2);
+
         PostQuitMessage(0);
     }
         break;
