@@ -11,12 +11,14 @@
 
 #define RANDOM_MINES 1
 
+#define RANDOM_SEED 173228
+
 #define MINES_COUNT 24
 
 #define PROGRAM_SECOND 1000
 
-#define GAME_GRID_X 50
-#define GAME_GRID_Y 50
+#define GAME_GRID_X 5
+#define GAME_GRID_Y 5
 
 #define GAME_CELL_FREE 0
 #define GAME_CELL_MINE 1
@@ -193,7 +195,7 @@ void drawMinesweeperStatistics(HDC hdc, int x, int y)
     TextOut(hdc, x, y, str1, _tcsclen(str1));
 
     TCHAR str2[] = _T("Времени прошло: ");
-    TextOut(hdc, x, y + 50, str2, _tcsclen(str2));
+    TextOut(hdc, x, y + 25, str2, _tcsclen(str2));
 
     if (isWin)
     {
@@ -228,7 +230,7 @@ void drawMinesweeperStatistics(HDC hdc, int x, int y)
     }
         
     OemToChar(timerText, timerTextOut);
-    TextOut(hdc, x + 170, y + 50, timerTextOut, _tcsclen(timerTextOut));
+    TextOut(hdc, x + 170, y + 25, timerTextOut, _tcsclen(timerTextOut));
 }
 
 void drawMinesweeperGrid(HDC hdc, int x, int y)
@@ -691,10 +693,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_CREATE:
     {
+        int xBorderWidth = GetSystemMetrics(SM_CXBORDER);
+        int yBorderHeight = GetSystemMetrics(SM_CYBORDER);
+        int yCaptionHeight = GetSystemMetrics(SM_CYCAPTION);
+        int yMenuHeight = GetSystemMetrics(SM_CYMENU);
+        
+        RECT rectW;
+        RECT rectC;
+        GetWindowRect(hWnd, &rectW);
+        GetClientRect(hWnd, &rectC);
+
+        MoveWindow(hWnd, rectW.left, rectW.top,
+                    GRID_COLUMNS_COUNT * MIN_CELL_SIZE + GAME_GRID_X * 2 + 2 * xBorderWidth + MIN_CELL_SIZE,
+                            GRID_ROWS_COUNT * MIN_CELL_SIZE + GAME_GRID_Y * 2 + 100, 1);
+
         if (RANDOM_MINES)
             srand(time(NULL));
+
         else
-            srand(1000);
+            srand(RANDOM_SEED);
     }
         break;
     case WM_COMMAND:
@@ -733,7 +750,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
             drawMinesweeperFrame(hWnd, hdc, GAME_GRID_X, GAME_GRID_Y);
-            drawMinesweeperStatistics(hdc, GAME_GRID_X + GRID_COLUMNS_COUNT * MIN_CELL_SIZE + 20, GAME_GRID_Y);
+            drawMinesweeperStatistics(hdc, 30, GAME_GRID_Y + MIN_CELL_SIZE * GRID_ROWS_COUNT + 20);
 
             
             ReleaseDC(hWnd, hdc);
