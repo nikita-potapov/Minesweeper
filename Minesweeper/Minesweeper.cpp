@@ -200,7 +200,7 @@ void drawMinesweeperStatistics(HDC hdc, int x, int y)
     if (isWin)
     {
         TCHAR str3[] = _T("Победа!");
-        TextOut(hdc, x, y + 80, str3, _tcsclen(str3));
+        TextOut(hdc, x + 300, y, str3, _tcsclen(str3));
     }
 
     char text[5];
