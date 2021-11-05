@@ -39,7 +39,19 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
+    <Image Include="minesweeper16x16.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="minesweeper32x32.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="minesweeper48x48.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="minesweeper64x64.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="minesweeper256x256.ico">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="Minesweeper.ico">

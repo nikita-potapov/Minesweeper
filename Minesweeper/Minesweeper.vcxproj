@@ -152,7 +152,11 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Minesweeper.ico" />
-    <Image Include="small.ico" />
+    <Image Include="minesweeper16x16.ico" />
+    <Image Include="minesweeper256x256.ico" />
+    <Image Include="minesweeper32x32.ico" />
+    <Image Include="minesweeper48x48.ico" />
+    <Image Include="minesweeper64x64.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
