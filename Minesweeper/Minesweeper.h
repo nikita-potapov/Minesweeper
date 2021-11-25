@@ -25,3 +25,15 @@ void showAllMines();
 int checkWin();
 void restartGame();
 void clearField();
+
+// Структура с информацией о рекорде
+struct Record {
+    char name[30];
+    unsigned int game_time;
+    unsigned int year;
+    unsigned int month;
+    unsigned int day;
+    unsigned int hour;
+    unsigned int minute;
+    unsigned int second;
+};

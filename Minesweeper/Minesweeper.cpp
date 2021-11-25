@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 // Minesweeper.cpp : Defines the entry point for the application.
 //
 #include <stdlib.h>
@@ -34,6 +36,15 @@
 
 #define MENU_HEIGHT 30
 
+#define RECORDS_TABLE_WIDTH 400
+#define RECORDS_TABLE_HEIGHT 100
+
+#define RECORDS_TABLE_X 200
+#define RECORDS_TABLE_Y 150
+
+#define SAVE_RECORD_MENU_X 100
+#define SAVE_RECORD_MENU_Y 400
+
 #define COLOR_UNEXPLORED RGB(0, 128, 128)
 #define COLOR_OPENED RGB(238, 238, 236)
 #define COLOR_MINE_HIT RGB(247, 64, 64)
@@ -42,6 +53,15 @@
 #define MIN_CELL_SIZE 20
 
 #define KEY_SPACE 0x20
+#define KEY_CHANGE_VIEW_MODE 0xC0
+
+#define MAX_NUM_RECORDS 10
+
+// Таблица рекордов
+struct Record records[MAX_NUM_RECORDS + 1];
+// текущее количество рекордов в таблице
+int numRecords = 0;
+
 
 int gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 int viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
@@ -64,6 +84,10 @@ int isKillTimer = 0;
 int inGame = 1;
 
 int isWin = 0;
+
+int gameMode = 1;
+
+
 
 
 
@@ -183,7 +207,6 @@ void recursiveOpenCell(int i, int j)
     }   
 }
 
-
 int isCordsGood(int i, int j)
 {
     return (((i >= 0) && (i < GRID_ROWS_COUNT)) && ((j >= 0) && (j < GRID_COLUMNS_COUNT)));
@@ -260,7 +283,6 @@ void drawMinesweeperCell(HDC hdc,int x, int y, int i, int j)
     (viewField[i][j] == VIEW_CELL_UNEXPLORED ||
         viewField[i][j] == VIEW_CELL_FLAG)) lightCell(hdc, i, j);
 }
-
 
 void drawUnexplored(HDC hdc, int x, int y, int i, int j)
 {   
@@ -501,6 +523,32 @@ void clearField()
     }
 }
 
+void addRecord(char name[])
+{
+    //if (numRecords >= MAX_NUM_RECORDS) {
+    //numRecords = numRecords - 1;
+    //}
+
+    strcpy(records[numRecords].name, name);
+    records[numRecords].game_time, timer;
+
+    SYSTEMTIME st;
+    // Получаем текущее время
+    GetLocalTime(&st);
+
+    // и разбрасываем его по полям в таблицу рекордов
+    records[numRecords].year = st.wYear;
+    records[numRecords].month = st.wMonth;
+    records[numRecords].day = st.wDay;
+
+    records[numRecords].hour = st.wHour;
+    records[numRecords].minute = st.wMinute;
+    records[numRecords].second = st.wSecond;
+    // Следующий раз будем записывать рекорд в следующий элемент	
+    numRecords++;
+}
+
+
 //
 //  FUNCTION: MyRegisterClass()
 //
@@ -567,12 +615,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+
+    static HWND hBtn; // дескриптор кнопки
+    static HWND hEdt1; // дескрипторы поля редактирования
+
+
     switch (message)
     {
     case WM_TIMER:
     {
-        if (isKillTimer) KillTimer(hWnd, 1);
-        timer++;
+        if (!isKillTimer) 
+            timer++;
         InvalidateRect(hWnd, NULL, 1);
     }
     break;
@@ -689,6 +742,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 InvalidateRect(hWnd, NULL, TRUE);
             }
             break;
+        case KEY_CHANGE_VIEW_MODE:
+            gameMode = !gameMode;
+            InvalidateRect(hWnd, NULL, TRUE);
+        break;
+
         }
     break;
     case WM_CREATE:
@@ -704,30 +762,66 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GetClientRect(hWnd, &rectC);
 
         MoveWindow(hWnd, rectW.left, rectW.top,
-                    GRID_COLUMNS_COUNT * MIN_CELL_SIZE + GAME_GRID_X * 2 + 2 * xBorderWidth + MIN_CELL_SIZE,
-                            GRID_ROWS_COUNT * MIN_CELL_SIZE + GAME_GRID_Y * 2 + 100, 1);
+                    GRID_COLUMNS_COUNT * MIN_CELL_SIZE + GAME_GRID_X * 2 + 2 * xBorderWidth + MIN_CELL_SIZE + RECORDS_TABLE_WIDTH * 2,
+                            GRID_ROWS_COUNT * MIN_CELL_SIZE + GAME_GRID_Y * 2 + 100 + RECORDS_TABLE_HEIGHT, 1);
 
         if (RANDOM_MINES)
             srand(time(NULL));
-
         else
             srand(RANDOM_SEED);
+
+        hInst = ((LPCREATESTRUCT)lParam)->hInstance; // дескриптор приложения
+        // Создаем и показываем поле редактирования - для ввода имени рекордсмена
+        HWND hEdt1 = CreateWindowW(_T("edit"), _T("Noname"),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_RIGHT, SAVE_RECORD_MENU_X, SAVE_RECORD_MENU_Y, 160, 20,
+            hWnd, 0, hInst, NULL);
+        ShowWindow(hEdt1, SW_SHOWNORMAL);
+
+        // Создаем и показываем кнопку
+        HWND hBtn = CreateWindowW(_T("button"), _T("Запомнить!"),
+            WS_CHILD | WS_VISIBLE | WS_BORDER,
+            SAVE_RECORD_MENU_X, SAVE_RECORD_MENU_Y + 25, 160, 20, hWnd, 0, hInst, NULL);
+        ShowWindow(hBtn, SW_SHOWNORMAL);
     }
-        break;
+    break;
     case WM_COMMAND:
         {
-            int wmId = LOWORD(wParam);
-            // Parse the menu selections:
-            switch (wmId)
+            if (lParam == (LPARAM)hBtn)    // если нажали на кнопку
             {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+                TCHAR StrT[20];
+                char str[20];
+
+                // Берем имя из элемента редактирования и помещаем в строку Windows
+                GetWindowText(hEdt1, StrT, sizeof(StrT));
+
+                // Конвертирует строку Windows в строку Си 
+                // !!!! ВАЖНО - корректно работает ТОЛЬКО для латинских букв!
+                wcstombs(str, StrT, 20);
+
+                // Фокус возвращаем в игру
+                // нажатия клавиш снова управляют игрой!
+                SetFocus(hWnd);
+
+                // добавляем рекорд в таблицу рекордов
+                //addRecord(str); // новый рекорд просто вставляем снизу в таблицу
+                //InsertRecord(str); // новый рекорд вставляем в таблицу, сохраняя сортировку
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+            else
+            {
+                int wmId = LOWORD(wParam);
+                // Parse the menu selections:
+                switch (wmId)
+                {
+                case IDM_ABOUT:
+                    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                    break;
+                case IDM_EXIT:
+                    DestroyWindow(hWnd);
+                    break;
+                default:
+                    return DefWindowProc(hWnd, message, wParam, lParam);
+                }
             }
         }
         break;
