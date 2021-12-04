@@ -25,6 +25,8 @@ void showAllMines();
 int checkWin();
 void restartGame();
 void clearField();
+int saveGame();
+int loadGame();
 
 // Структура с информацией о рекорде
 struct Record {

@@ -52,8 +52,10 @@
 
 #define MIN_CELL_SIZE 20
 
-#define KEY_SPACE 0x20
-#define KEY_CHANGE_VIEW_MODE 0xC0
+#define KEY_SPACE 0x20 // пробел
+#define KEY_CHANGE_VIEW_MODE 0xC0 // `(~)
+#define KEY_SAVE 0x53 // клавиша S
+#define KEY_LOAD 0x4C // клавиша L
 
 #define MAX_NUM_RECORDS 10
 
@@ -63,11 +65,15 @@ struct Record records[MAX_NUM_RECORDS + 1];
 int numRecords = 0;
 
 
+
 int gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 int viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = {0};
 
 int lightI = -1;
 int lightJ = -1;
+
+int rows = GRID_ROWS_COUNT;
+int cols = GRID_COLUMNS_COUNT;
 
 int mouseX, mouseY;
 
@@ -87,9 +93,9 @@ int isWin = 0;
 
 int gameMode = 1;
 
+static char filenameRecords[] = "minesweeper_saved_records.txt";
 
-
-
+static char savedGameFileName[] = "minesweeper_saved_game.txt";
 
 static HPEN hPenBlack1 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 static HBRUSH hBrushColorUnexplored = CreateSolidBrush(COLOR_UNEXPLORED);
@@ -486,9 +492,6 @@ int checkWin()
 
 void restartGame()
 {
-    gameField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = { 0 };
-    viewField[GRID_ROWS_COUNT][GRID_COLUMNS_COUNT] = { 0 };
-
     lightI = -1;
     lightJ = -1;
 
@@ -523,6 +526,17 @@ void clearField()
     }
 }
 
+int CompareRecords(int index1, int index2)
+{
+    if (records[index1].game_time < records[index2].game_time)
+        return -1;
+    if (records[index1].game_time > records[index2].game_time)
+        return +1;
+
+
+    return 0;
+}
+
 void addRecord(char name[])
 {
     //if (numRecords >= MAX_NUM_RECORDS) {
@@ -530,7 +544,7 @@ void addRecord(char name[])
     //}
 
     strcpy(records[numRecords].name, name);
-    records[numRecords].game_time, timer;
+    records[numRecords].game_time = timer;
 
     SYSTEMTIME st;
     // Получаем текущее время
@@ -544,9 +558,210 @@ void addRecord(char name[])
     records[numRecords].hour = st.wHour;
     records[numRecords].minute = st.wMinute;
     records[numRecords].second = st.wSecond;
-    // Следующий раз будем записывать рекорд в следующий элемент	
-    numRecords++;
+
+    // Продвигаем запись к началу массива - если в ней 
+    // хороший результат
+    int i = numRecords;
+    while (i > 0) {
+        if (CompareRecords(i - 1, i) < 0) {
+            struct Record temp = records[i];
+            records[i] = records[i - 1];
+            records[i - 1] = temp;
+        }
+        i--;
+    }
+    // Если таблица заполнена не полностью
+    if (numRecords < MAX_NUM_RECORDS)
+        // следующий раз новый рекорд будет занесен в новый элемент
+        numRecords++;
+
 }
+
+int saveGame()
+{
+    FILE* fout = fopen(savedGameFileName, "wt");
+    if (NULL == fout)
+        return -1;
+
+    fprintf(fout, "%d\n", GRID_ROWS_COUNT);
+    fprintf(fout, "%d\n", GRID_COLUMNS_COUNT);
+    fprintf(fout, "%d\n", timer);
+
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+    {
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+        {
+            fprintf(fout, "%d ", gameField[i][j]);
+        }
+        fprintf(fout, "\n");
+    }
+    fprintf(fout, "\n");
+
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+    {
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+        {
+            fprintf(fout, "%d ", viewField[i][j]);
+        }
+        fprintf(fout, "\n");
+    }
+    fprintf(fout, "\n");
+    
+
+    fclose(fout);
+    return 0;
+}
+
+int loadGame()
+{
+    FILE* fin = fopen(savedGameFileName, "rt");
+    if (NULL == fin)
+        return -1;
+
+    fscanf(fin, "%d\n", &rows);
+    fscanf(fin, "%d\n", &cols);
+
+    
+
+    fscanf(fin, "%d\n", &timer);
+
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+            fscanf(fin, "%d", &gameField[i][j]);
+
+    for (int i = 0; i < GRID_ROWS_COUNT; i++)
+        for (int j = 0; j < GRID_COLUMNS_COUNT; j++)
+            fscanf(fin, "%d", &viewField[i][j]);
+
+    fclose(fin);
+    return 0;
+}
+
+void DrawRecords(HDC hdc) {
+    HFONT hFont;
+    hFont = CreateFont(16, 0, 0, 0, 0, 0, 0, 0,
+        DEFAULT_CHARSET, 0, 0, 0, 0,
+        L"Courier New"
+    );
+    SelectObject(hdc, hFont);
+    SetTextColor(hdc, RGB(0, 64, 64));
+
+    TCHAR  string1[] = _T("! No ! Дата       ! Время    ! Имя                  ! Время решения !");
+    TextOut(hdc, 10, 50, (LPCWSTR)string1, _tcslen(string1));
+
+    int i;
+    for (i = 0; i < numRecords; i++) {
+        TCHAR  string2[80];
+        char str[80];
+        sprintf(str, "! %2d ! %02d.%02d.%04d ! %02d:%02d:%02d ! %-20s ! %13d !",
+            i + 1,
+            records[i].day, records[i].month, records[i].year,
+            records[i].hour, records[i].minute, records[i].second,
+            records[i].name, records[i].game_time
+        );
+        OemToChar(str, string2);
+        TextOut(hdc, 10, 24 * (i + 1) + 50, (LPCWSTR)string2, _tcslen(string2));
+    }
+    DeleteObject(hFont);
+}
+
+void InsertRecord(char name[])
+{
+    strcpy(records[numRecords].name, name);
+    records[numRecords].game_time = timer;
+
+
+    SYSTEMTIME st;
+    // Получаем текущее время
+    GetLocalTime(&st);
+
+    // и разбрасываем его по полям в таблицу рекордов
+    records[numRecords].year = st.wYear;
+    records[numRecords].month = st.wMonth;
+    records[numRecords].day = st.wDay;
+
+    records[numRecords].hour = st.wHour;
+    records[numRecords].minute = st.wMinute;
+    records[numRecords].second = st.wSecond;
+
+
+    // Продвигаем запись к началу массива - если в ней 
+    // хороший результат
+    int i = numRecords;
+    while (i > 0) {
+        if (CompareRecords(i - 1, i) < 0) {
+            struct Record temp = records[i];
+            records[i] = records[i - 1];
+            records[i - 1] = temp;
+        }
+        i--;
+    }
+    // Если таблица заполнена не полностью
+    if (numRecords < MAX_NUM_RECORDS)
+        // следующий раз новый рекорд будет занесен в новый элемент
+        numRecords++;
+}
+
+
+
+void SaveRecords() {
+    // Запись в выходной файл
+    FILE* fout = fopen(filenameRecords, "wt");
+    if (fout == NULL) {
+        // выходим, не сохранив результаты в файл
+        return;
+    }
+
+    fprintf(fout, "%d\n", numRecords);
+
+    int i;
+    for (i = 0; i < numRecords; i++) {
+        // сохраняем в файле каждое поле каждого рекорда
+        fprintf(fout, "%s %d %d %d %d %d %d %d\n",
+            records[i].name,
+            records[i].game_time,
+            records[i].year,
+            records[i].month,
+            records[i].day,
+            records[i].hour,
+            records[i].minute,
+            records[i].second
+        );
+    }
+    // закрываем файл
+    fclose(fout);
+}
+
+
+void LoadRecords() {
+    // Открываем файл с рекордами на чтение
+    FILE* fout = fopen(filenameRecords, "rt");
+    if (fout == NULL) {
+        // выходим, не загрузив рекорды из файла
+        return;
+    }
+
+    fscanf(fout, "%d", &numRecords); // количество рекордов в таблице
+
+    int i;
+    for (i = 0; i < numRecords; i++) {
+        // загружаем из файла каждое поле каждого рекорда
+        fscanf(fout, "%s%d%d%d%d%d%d%d\n",
+            records[i].name,
+            &records[i].game_time,
+            &records[i].year,
+            &records[i].month,
+            &records[i].day,
+            &records[i].hour,
+            &records[i].minute,
+            &records[i].second
+        );
+    }
+    // закрываем файл
+    fclose(fout);
+}
+
+
 
 
 //
@@ -745,8 +960,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case KEY_CHANGE_VIEW_MODE:
             gameMode = !gameMode;
             InvalidateRect(hWnd, NULL, TRUE);
-        break;
-
+            break;
+        case KEY_SAVE:
+            saveGame();
+            break;
+        case KEY_LOAD:
+        {
+            restartGame();
+            loadGame();
+        }
+            break;
         }
     break;
     case WM_CREATE:
@@ -770,15 +993,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else
             srand(RANDOM_SEED);
 
+        LoadRecords(); // загрузка таблицы рекордов
+
+
         hInst = ((LPCREATESTRUCT)lParam)->hInstance; // дескриптор приложения
+
+
         // Создаем и показываем поле редактирования - для ввода имени рекордсмена
-        HWND hEdt1 = CreateWindowW(_T("edit"), _T("Noname"),
+        hEdt1 = CreateWindowW(_T("edit"), _T("Noname"),
             WS_CHILD | WS_VISIBLE | WS_BORDER | ES_RIGHT, SAVE_RECORD_MENU_X, SAVE_RECORD_MENU_Y, 160, 20,
             hWnd, 0, hInst, NULL);
         ShowWindow(hEdt1, SW_SHOWNORMAL);
 
         // Создаем и показываем кнопку
-        HWND hBtn = CreateWindowW(_T("button"), _T("Запомнить!"),
+        hBtn = CreateWindowW(_T("button"), _T("Запомнить!"),
             WS_CHILD | WS_VISIBLE | WS_BORDER,
             SAVE_RECORD_MENU_X, SAVE_RECORD_MENU_Y + 25, 160, 20, hWnd, 0, hInst, NULL);
         ShowWindow(hBtn, SW_SHOWNORMAL);
@@ -786,6 +1014,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_COMMAND:
         {
+            InvalidateRect(hWnd, NULL, TRUE);
+
+
             if (lParam == (LPARAM)hBtn)    // если нажали на кнопку
             {
                 TCHAR StrT[20];
@@ -796,7 +1027,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 // Конвертирует строку Windows в строку Си 
                 // !!!! ВАЖНО - корректно работает ТОЛЬКО для латинских букв!
-                wcstombs(str, StrT, 20);
+                wcstombs(str, StrT, 30);
 
                 // Фокус возвращаем в игру
                 // нажатия клавиш снова управляют игрой!
@@ -804,7 +1035,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 // добавляем рекорд в таблицу рекордов
                 //addRecord(str); // новый рекорд просто вставляем снизу в таблицу
-                //InsertRecord(str); // новый рекорд вставляем в таблицу, сохраняя сортировку
+                InsertRecord(str); // новый рекорд вставляем в таблицу, сохраняя сортировку
                 InvalidateRect(hWnd, NULL, TRUE);
             }
             else
@@ -842,9 +1073,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetTextColor(hdc, RGB(0, 0, 128));
             SetBkMode(hdc, TRANSPARENT);
 
-
-            drawMinesweeperFrame(hWnd, hdc, GAME_GRID_X, GAME_GRID_Y);
-            drawMinesweeperStatistics(hdc, 30, GAME_GRID_Y + MIN_CELL_SIZE * GRID_ROWS_COUNT + 20);
+            if (gameMode)
+            {
+                drawMinesweeperFrame(hWnd, hdc, GAME_GRID_X, GAME_GRID_Y);
+                drawMinesweeperStatistics(hdc, 30, GAME_GRID_Y + MIN_CELL_SIZE * GRID_ROWS_COUNT + 20);
+            }
+            else
+            {
+                DrawRecords(hdc);
+            }
 
             
             ReleaseDC(hWnd, hdc);
@@ -853,6 +1090,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
     {
+        SaveRecords(); // сохранение таблицы рекордов
+
         DeleteObject(hPenBlack1);
         DeleteObject(hBrushColorUnexplored);
         DeleteObject(hBrushColorOpened);
