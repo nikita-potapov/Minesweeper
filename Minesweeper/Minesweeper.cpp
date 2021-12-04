@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <ctype.h>
 #include "framework.h"
 #include "Minesweeper.h"
 
@@ -59,6 +60,10 @@
 
 #define MAX_NUM_RECORDS 10
 
+#define MAX_LEN 80
+#define KEY +3
+
+
 // Таблица рекордов
 struct Record records[MAX_NUM_RECORDS + 1];
 // текущее количество рекордов в таблице
@@ -94,6 +99,8 @@ int isWin = 0;
 int gameMode = 1;
 
 static char filenameRecords[] = "minesweeper_saved_records.txt";
+
+char filenameRecordsEncoded[] = "minesweeper_records_encoded.txt";
 
 static char savedGameFileName[] = "minesweeper_saved_game.txt";
 
@@ -529,9 +536,9 @@ void clearField()
 int CompareRecords(int index1, int index2)
 {
     if (records[index1].game_time < records[index2].game_time)
-        return -1;
-    if (records[index1].game_time > records[index2].game_time)
         return +1;
+    if (records[index1].game_time > records[index2].game_time)
+        return -1;
 
 
     return 0;
@@ -702,8 +709,6 @@ void InsertRecord(char name[])
         numRecords++;
 }
 
-
-
 void SaveRecords() {
     // Запись в выходной файл
     FILE* fout = fopen(filenameRecords, "wt");
@@ -732,7 +737,6 @@ void SaveRecords() {
     fclose(fout);
 }
 
-
 void LoadRecords() {
     // Открываем файл с рекордами на чтение
     FILE* fout = fopen(filenameRecords, "rt");
@@ -760,6 +764,142 @@ void LoadRecords() {
     // закрываем файл
     fclose(fout);
 }
+
+// Шифрование одной буквы ch ключом KEY
+int encodeChar(int ch) {
+    //char smallLetters[] ="abcdefghijklmnopqrstuvwxyz";
+    //char bigLetters[]   ="ABCDEGGHIJKLMNOPQRSTUVWXYZ";
+
+    int newCh = ch;
+
+    if (ch >= 'A' && ch <= 'Z') {
+        newCh = ch + KEY;
+        if (newCh > 'Z')
+            newCh = 'A' + (newCh - 'Z' - 1);
+    }
+
+    if (ch >= 'a' && ch <= 'z') {
+        newCh = ch + KEY;
+        if (newCh > 'z')
+            newCh = 'a' + (newCh - 'z' - 1);
+    }
+
+    return newCh;
+}
+
+// Расшифрование одной буквы ch ключом KEY
+int decodeChar(int ch) {
+    //char smallLetters[] ="abcdefghijklmnopqrstuvwxyz";
+    //char bigLetters[]   ="ABCDEGGHIJKLMNOPQRSTUVWXYZ";
+
+    int newCh = ch;
+
+    if (ch >= 'A' && ch <= 'Z') {
+        newCh = ch - KEY;
+        if (newCh < 'A')
+            newCh = 'Z' - ('A' - newCh - 1);
+    }
+
+    if (ch >= 'a' && ch <= 'z') {
+        newCh = ch - KEY;
+        if (newCh < 'a')
+            newCh = 'z' - ('a' - newCh - 1);
+    }
+
+    return newCh;
+}
+
+void SaveRecordsEncoded() {
+    // Запись в выходной файл
+    FILE* fout = fopen(filenameRecordsEncoded, "wt");
+    if (fout == NULL) {
+        // выходим, не сохранив результаты в файл
+        return;
+    }
+
+    char str[MAX_LEN];
+    sprintf(str, "%d\n", numRecords);
+    encodeString(str);
+    fprintf(fout, "%s", str);
+
+    int i;
+    for (i = 0; i < numRecords; i++) {
+        // сохраняем в файле каждое поле каждого рекорда
+        sprintf(str, "%s %d %d %d %d %d %d %d\n",
+            records[i].name,
+            records[i].game_time,
+            records[i].year,
+            records[i].month,
+            records[i].day,
+            records[i].hour,
+            records[i].minute,
+            records[i].second
+        );
+        encodeString(str);
+        fprintf(fout, "%s", str);
+    }
+    // закрываем файл
+    fclose(fout);
+}
+
+void LoadRecordsEncoded() {
+    // Открываем файл с рекордами на чтение
+    FILE* fin = fopen(filenameRecordsEncoded, "rt");
+    if (fin == NULL) {
+        // выходим, не загрузив рекорды из файла
+        return;
+    }
+    char str[MAX_LEN];
+
+    fgets(str, MAX_LEN - 1, fin);
+    decodeString(str);
+    sscanf(str, "%d", &numRecords);
+    int i;
+    for (i = 0; i < numRecords; i++) {
+        // сохраняем в файле каждое поле каждого рекорда
+        fgets(str, MAX_LEN - 1, fin);
+        decodeString2(str);
+
+        sscanf(str, "%s%d%d%d%d%d%d%d\n",
+            records[i].name,
+            &records[i].game_time,
+            &records[i].year,
+            &records[i].month,
+            &records[i].day,
+            &records[i].hour,
+            &records[i].minute,
+            &records[i].second
+        );
+    }
+    // закрываем файл
+    fclose(fin);
+}
+
+// шифрование
+void encodeString(char str[]) {
+    int i;
+    for (i = 0; str[i] != '\0'; i++) {
+        str[i] = encodeChar(str[i]);
+    }
+}
+
+// расшифровка
+void decodeString(char* str) {
+    int i;
+    for (i = 0; str[i] != '\0'; i++) {
+        str[i] = decodeChar(str[i]);
+    }
+}
+
+// расшифровка 2
+void decodeString2(char* str) {
+
+    while (*str) {
+        *str = decodeChar(*str);
+        ++str;
+    }
+}
+
 
 
 
@@ -1090,7 +1230,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
     {
-        SaveRecords(); // сохранение таблицы рекордов
+        // SaveRecords(); // сохранение таблицы рекордов
+        SaveRecordsEncoded();
 
         DeleteObject(hPenBlack1);
         DeleteObject(hBrushColorUnexplored);

@@ -28,6 +28,14 @@ void clearField();
 int saveGame();
 int loadGame();
 
+int encodeChar(int ch);
+int decodeChar(int ch);
+void SaveRecordsEncoded();
+void LoadRecordsEncoded();
+void encodeString(char str[]);
+void decodeString(char* str);
+void decodeString2(char* str);
+
 // Структура с информацией о рекорде
 struct Record {
     char name[30];
